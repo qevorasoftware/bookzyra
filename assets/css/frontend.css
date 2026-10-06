@@ -643,3 +643,220 @@
   .bookzyra-widget *,
   .bookzyra-result * { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Readability and spacing refresh */
+.bookzyra-widget {
+  width: min(100%, 1200px);
+  margin: 36px auto;
+  border-radius: 28px;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.bz-hero {
+  min-height: 242px;
+  padding: 32px 48px 38px;
+}
+.bz-brand-lockup { gap: 12px; font-size: 19px; }
+.bz-brand-mark { width: 30px; height: 29px; gap: 4px; padding: 4px; border-radius: 9px; }
+.bz-brand-mark span { width: 5px; }
+.bz-brand-mark span:nth-child(1) { height: 10px; }
+.bz-brand-mark span:nth-child(2) { height: 16px; }
+.bz-brand-mark span:nth-child(3) { height: 21px; }
+.bz-hero-copy { max-width: 760px; margin-top: 29px; }
+.bz-eyebrow { font-size: 12px; letter-spacing: .17em; }
+.bz-hero h2 { margin: 9px 0 8px; font-size: clamp(32px, 4vw, 43px); line-height: 1.12; }
+.bz-hero-copy > p:last-child { font-size: 16px; line-height: 1.55; }
+.bz-booking-shell { padding: 0 48px 30px; }
+
+.bz-stepper { width: min(100%, 730px); padding: 30px 0 25px; }
+.bz-stepper-item { gap: 10px; font-size: 14px; }
+.bz-step-number { width: 34px; height: 34px; font-size: 12px; }
+.bz-stepper-line { min-width: 24px; margin: 0 17px; }
+.bz-content-grid { grid-template-columns: minmax(0, 1fr) 320px; gap: 40px; padding: 36px 0 20px; }
+.bz-panel-heading { gap: 22px; margin-bottom: 24px; }
+.bz-overline { font-size: 11px; letter-spacing: .15em; }
+.bz-panel-heading h3 { margin-top: 7px; font-size: 28px; }
+.bz-small-note { font-size: 13px; }
+
+.bz-service-list { gap: 12px; }
+.bz-service-card { grid-template-columns: 48px minmax(0, 1fr) auto 25px; gap: 16px; min-height: 100px; padding: 18px 19px; border-radius: 15px; }
+.bz-service-card-icon { width: 46px; height: 46px; border-radius: 13px; font-size: 20px; }
+.bz-service-card-copy { gap: 3px; }
+.bz-service-title { font-size: 16px; }
+.bz-service-meta { font-size: 13px; }
+.bz-service-description { margin-top: 3px; font-size: 13px; line-height: 1.5; }
+.bz-service-price { font-size: 15px; }
+.bz-service-check { width: 23px; height: 23px; font-size: 13px; }
+.bz-loading-card,
+.bz-slots-loading { min-height: 84px; padding: 20px; font-size: 14px; }
+.bz-empty-services { min-height: 170px; gap: 10px; font-size: 15px; }
+.bz-empty-services strong { font-size: 15px; }
+.bz-empty-services-icon { font-size: 29px; }
+
+.bz-panel-actions { gap: 14px; margin-top: 28px; }
+.bz-button { min-height: 52px; gap: 14px; padding: 0 22px; border-radius: 12px; font-size: 14px; }
+.bz-button > span[aria-hidden="true"] { font-size: 20px; }
+.bz-selected-service { margin-bottom: 25px; padding: 13px 15px; border-radius: 12px; }
+.bz-selected-service-inner { gap: 12px; }
+.bz-selected-service-copy strong { font-size: 14px; }
+.bz-selected-service-copy small { font-size: 12px; }
+.bz-change-service { padding: 6px 9px; font-size: 13px; }
+.bz-selected-service-compact { margin-bottom: 21px; }
+
+.bz-field-label { margin-bottom: 10px; font-size: 15px; }
+.bz-date-field input { min-height: 54px; padding-left: 48px; border-radius: 12px; font-size: 16px; }
+.bz-date-icon { left: 17px; font-size: 19px; }
+.bz-field-hint { right: 15px; font-size: 12px; }
+.bz-slot-heading { margin: 25px 0 13px; font-size: 15px; }
+.bz-slot-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 11px; min-height: 48px; }
+.bz-slot-button { min-height: 48px; padding: 8px 10px; border-radius: 10px; font-size: 14px; }
+.bz-placeholder-text { padding: 16px 14px; border-radius: 10px; font-size: 13px; }
+
+.bz-booking-form { gap: 17px; }
+.bz-form-row { gap: 16px; }
+.bz-form-field { gap: 8px; }
+.bz-form-field > span { font-size: 14px; }
+.bz-form-field > span b { font-size: 14px; }
+.bz-form-field > span i { font-size: 12px; }
+.bz-form-field input,
+.bz-form-field textarea { min-height: 50px; padding: 12px 14px; border-radius: 10px; font-size: 15px; }
+.bz-form-field textarea { min-height: 88px; }
+.bz-payment-section { padding-top: 20px; }
+.bz-payment-heading { margin-bottom: 12px; }
+.bz-payment-heading .bz-small-note { font-size: 12px; }
+.bz-lock-icon { width: 34px; height: 34px; border-radius: 10px; font-size: 18px; }
+.bz-payment-list { gap: 10px; }
+.bz-payment-option { grid-template-columns: 18px 36px minmax(0, 1fr); gap: 13px; min-height: 72px; padding: 13px 15px; border-radius: 12px; }
+.bz-payment-option-icon,
+.bz-payment-option .bz-payment-option-icon { width: 36px; height: 36px; border-radius: 10px; font-size: 18px; }
+.bz-payment-copy { gap: 3px; }
+.bz-payment-copy strong { font-size: 14px; }
+.bz-payment-copy small { font-size: 12px; line-height: 1.45; }
+.bz-payment-empty { font-size: 13px; }
+.bz-consent { gap: 10px; font-size: 13px; line-height: 1.55; }
+.bz-consent input { width: 17px; height: 17px; margin-top: 2px; }
+.bz-booking-form .bz-panel-actions { margin-top: 6px; }
+.bz-booking-form .bz-panel-actions .bz-button { min-width: 220px; }
+.bz-alert { margin-bottom: 20px; padding: 14px 17px; border-radius: 11px; font-size: 14px; }
+
+.bz-summary-card { top: 28px; border-radius: 17px; }
+.bz-summary-top { gap: 13px; padding: 21px 21px 18px; }
+.bz-summary-icon { width: 41px; height: 41px; border-radius: 13px; font-size: 18px; }
+.bz-summary-top .bz-overline { font-size: 11px; }
+.bz-summary-top h3 { font-size: 17px; }
+.bz-summary-empty { min-height: 225px; gap: 15px; padding: 26px 22px; }
+.bz-summary-illustration { width: 68px; height: 68px; border-radius: 22px; }
+.bz-summary-illustration span { font-size: 30px; }
+.bz-summary-empty p { max-width: 210px; font-size: 13px; }
+.bz-summary-details { padding: 21px; }
+.bz-summary-service { gap: 11px; }
+.bz-summary-caption { font-size: 11px; letter-spacing: .11em; }
+.bz-summary-service strong,
+.bz-summary-row strong { font-size: 13px; }
+.bz-summary-service small { font-size: 12px; }
+.bz-summary-divider { margin: 18px 0; }
+.bz-summary-row { gap: 12px; margin: 14px 0; }
+.bz-summary-icon-sm { width: 34px; height: 34px; flex-basis: 34px; border-radius: 9px; font-size: 15px; }
+.bz-summary-total { margin-top: 20px; padding-top: 16px; font-size: 13px; }
+.bz-summary-total strong { font-size: 20px; }
+.bz-summary-trust { gap: 10px; margin: 0 15px 15px; padding: 13px 14px; border-radius: 10px; }
+.bz-summary-trust > span { width: 18px; height: 18px; flex-basis: 18px; font-size: 11px; }
+.bz-summary-trust p { font-size: 12px; }
+
+.bz-success-panel { min-height: 410px; padding: 42px 26px 30px; }
+.bz-success-icon { width: 66px; height: 66px; margin-bottom: 22px; border-radius: 22px; font-size: 29px; }
+.bz-success-panel h3 { font-size: 29px; }
+.bz-success-message { font-size: 15px; line-height: 1.6; }
+.bz-success-reference { margin-top: 23px; padding: 13px 28px; font-size: 12px; }
+.bz-success-reference strong { font-size: 15px; }
+.bz-success-instructions { margin-top: 20px; padding: 16px 18px; border-radius: 12px; }
+.bz-success-instructions strong,
+.bz-success-instructions p { font-size: 13px; }
+.bz-again-button { margin-top: 24px; }
+.bz-widget-footer { gap: 14px; padding-top: 17px; font-size: 12px; }
+
+.bookzyra-result { gap: 18px; padding: 25px 29px; border-radius: 17px; }
+.bz-result-icon { width: 46px; height: 46px; flex-basis: 46px; border-radius: 14px; font-size: 21px; }
+.bookzyra-result .bz-result-eyebrow { font-size: 11px; }
+.bookzyra-result h2 { font-size: 23px; }
+.bookzyra-result p { font-size: 14px; line-height: 1.6; }
+.bz-result-reference { margin-top: 11px; font-size: 12px; }
+
+@media (max-width: 900px) {
+  .bz-hero { padding-right: 34px; padding-left: 34px; }
+  .bz-booking-shell { padding-right: 34px; padding-left: 34px; }
+  .bz-content-grid { grid-template-columns: minmax(0, 1fr) 285px; gap: 25px; }
+  .bz-slot-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .bookzyra-widget { margin: 22px auto; border-radius: 20px; }
+  .bz-hero { min-height: 218px; padding: 24px 24px 30px; }
+  .bz-brand-lockup { font-size: 17px; }
+  .bz-brand-mark { width: 27px; height: 27px; }
+  .bz-hero-copy { margin-top: 25px; }
+  .bz-eyebrow { font-size: 11px; }
+  .bz-hero h2 { font-size: 32px; }
+  .bz-hero-copy > p:last-child { font-size: 14px; }
+  .bz-booking-shell { padding: 0 24px 22px; }
+  .bz-stepper { padding: 22px 0 19px; }
+  .bz-stepper-item { gap: 7px; font-size: 12px; }
+  .bz-step-number { width: 29px; height: 29px; font-size: 11px; }
+  .bz-stepper-line { min-width: 12px; margin: 0 9px; }
+  .bz-content-grid { display: flex; flex-direction: column; gap: 22px; padding-top: 26px; }
+  .bz-flow,
+  .bz-summary-card { width: 100%; }
+  .bz-summary-card { position: static; }
+  .bz-summary-empty { min-height: 150px; }
+  .bz-summary-illustration { width: 54px; height: 54px; border-radius: 18px; }
+  .bz-summary-empty p { max-width: 290px; }
+  .bz-summary-details { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; padding: 16px; }
+  .bz-summary-service { grid-column: 1 / -1; }
+  .bz-summary-divider { display: none; }
+  .bz-summary-total { grid-column: 1 / -1; margin-top: 0; }
+  .bz-summary-trust { margin: 0 14px 14px; }
+  .bz-widget-footer { padding-top: 14px; font-size: 11px; }
+  .bz-success-panel { min-height: 330px; padding: 30px 14px 22px; }
+  .bz-success-panel h3 { font-size: 25px; }
+}
+@media (max-width: 520px) {
+  .bz-hero { min-height: 205px; padding: 21px 18px 26px; }
+  .bz-brand-lockup { font-size: 16px; }
+  .bz-hero-copy { margin-top: 22px; }
+  .bz-hero h2 { font-size: 28px; }
+  .bz-hero-copy > p:last-child { max-width: 330px; font-size: 13px; }
+  .bz-booking-shell { padding-right: 17px; padding-left: 17px; }
+  .bz-stepper { padding: 19px 0 17px; }
+  .bz-stepper-item { flex-direction: column; gap: 4px; font-size: 12px; }
+  .bz-step-number { width: 27px; height: 27px; font-size: 12px; }
+  .bz-stepper-line { min-width: 8px; margin: 0 6px 15px; }
+  .bz-panel-heading { align-items: flex-start; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+  .bz-panel-heading h3 { font-size: 24px; }
+  .bz-panel-heading > .bz-small-note { display: none; }
+  .bz-service-card { grid-template-columns: 40px minmax(0, 1fr) auto 22px; gap: 10px; min-height: 86px; padding: 12px 11px; }
+  .bz-service-card-icon { width: 38px; height: 38px; border-radius: 11px; font-size: 17px; }
+  .bz-service-title { font-size: 14px; }
+  .bz-service-meta { font-size: 12px; }
+  .bz-service-price { font-size: 13px; }
+  .bz-service-description { display: none; }
+  .bz-slot-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .bz-slot-button { min-height: 44px; padding: 7px 5px; font-size: 12px; }
+  .bz-field-hint { display: none; }
+  .bz-form-row { grid-template-columns: 1fr; gap: 14px; }
+  .bz-form-field input,
+  .bz-form-field textarea { font-size: 16px; }
+  .bz-payment-option { grid-template-columns: 17px 32px minmax(0, 1fr); gap: 9px; padding: 11px; }
+  .bz-payment-option-icon,
+  .bz-payment-option .bz-payment-option-icon { width: 32px; height: 32px; }
+  .bz-payment-copy strong { font-size: 13px; }
+  .bz-payment-copy small { font-size: 12px; }
+  .bz-consent { font-size: 12px; }
+  .bz-actions-between { gap: 9px; }
+  .bz-panel-actions .bz-button { padding: 0 14px; font-size: 13px; }
+  .bz-booking-form .bz-panel-actions .bz-button { min-width: 0; }
+  .bz-widget-footer { align-items: flex-start; flex-direction: column; gap: 5px; font-size: 11px; }
+  .bookzyra-result { width: calc(100% - 24px); gap: 12px; margin: 18px auto; padding: 18px; }
+  .bz-result-icon { width: 38px; height: 38px; flex-basis: 38px; }
+  .bookzyra-result h2 { font-size: 20px; }
+  .bookzyra-result p { font-size: 13px; }
+}

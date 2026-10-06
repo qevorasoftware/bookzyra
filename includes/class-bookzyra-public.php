@@ -297,8 +297,8 @@ final class Bookzyra_Public {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_slots( $request ) {
-		$service_id = absint( $request->get_param( 'service_id' ) );
-		$date       = sanitize_text_field( $request->get_param( 'date' ) );
+		$service_id = $request->get_param( 'service_id' );
+		$date       = $request->get_param( 'date' );
 		$slots      = Bookzyra_Booking::get_available_slots( $service_id, $date );
 		if ( is_wp_error( $slots ) ) {
 			return $slots;
@@ -401,8 +401,8 @@ final class Bookzyra_Public {
 		if ( ! is_array( $payload ) ) {
 			$payload = $request->get_params();
 		}
-		$transaction_id = isset( $payload['entityId'] ) ? absint( $payload['entityId'] ) : 0;
-		$space_id       = isset( $payload['spaceId'] ) ? absint( $payload['spaceId'] ) : 0;
+		$transaction_id = isset( $payload['entityId'] ) && is_scalar( $payload['entityId'] ) ? absint( $payload['entityId'] ) : 0;
+		$space_id       = isset( $payload['spaceId'] ) && is_scalar( $payload['spaceId'] ) ? absint( $payload['spaceId'] ) : 0;
 		$settings       = bookzyra_get_settings();
 		$expected_space = absint( $settings['wallee_space_id'] );
 
@@ -428,8 +428,8 @@ final class Bookzyra_Public {
 			return new WP_Error( 'bookzyra_webhook_mismatch', __( 'The payment notification did not match this payment space.', 'bookzyra' ), array( 'status' => 400 ) );
 		}
 
-		if ( ! empty( $transaction['state'] ) ) {
-			Bookzyra_Booking::apply_gateway_state( absint( $booking['id'] ), $transaction['state'] );
+		if ( isset( $transaction['state'] ) && is_scalar( $transaction['state'] ) && '' !== (string) $transaction['state'] ) {
+			Bookzyra_Booking::apply_gateway_state( absint( $booking['id'] ), (string) $transaction['state'] );
 		}
 
 		return rest_ensure_response( array( 'received' => true, 'matched' => true ) );

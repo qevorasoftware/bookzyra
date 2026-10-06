@@ -36,6 +36,8 @@ final class Bookzyra_Admin {
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'admin_post_bookzyra_save_service', array( $this, 'save_service' ) );
 		add_action( 'admin_post_bookzyra_archive_service', array( $this, 'archive_service' ) );
+		add_action( 'admin_post_bookzyra_restore_service', array( $this, 'restore_service' ) );
+		add_action( 'admin_post_bookzyra_delete_service', array( $this, 'delete_service' ) );
 		add_action( 'admin_post_bookzyra_update_booking', array( $this, 'update_booking' ) );
 		add_action( 'admin_post_bookzyra_save_settings', array( $this, 'save_settings' ) );
 	}
@@ -166,7 +168,7 @@ final class Bookzyra_Admin {
 
 		$table     = Bookzyra_Booking::services_table();
 		$services  = $wpdb->get_results( "SELECT * FROM {$table} ORDER BY active DESC, name ASC", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$edit_id   = isset( $_GET['edit'] ) ? absint( $_GET['edit'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$edit_id   = isset( $_GET['edit'] ) && is_scalar( $_GET['edit'] ) ? absint( wp_unslash( $_GET['edit'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$editing   = $edit_id ? Bookzyra_Booking::get_service( $edit_id, false ) : null;
 		$currency  = bookzyra_get_settings()['currency'];
 		$defaults  = array( 'id' => 0, 'name' => '', 'description' => '', 'duration' => 30, 'price' => '0.00', 'color' => '#6257e8', 'active' => 1 );
@@ -200,7 +202,30 @@ final class Bookzyra_Admin {
 							<div class="bz-service-admin-card <?php echo empty( $row['active'] ) ? 'is-archived' : ''; ?>">
 								<span class="bz-service-color" style="--service-color: <?php echo esc_attr( preg_match( '/^#[0-9a-fA-F]{6}$/', $row['color'] ) ? $row['color'] : '#6257e8' ); ?>"></span>
 								<div class="bz-service-admin-main"><div class="bz-service-name-row"><h3><?php echo esc_html( $row['name'] ); ?></h3><?php if ( empty( $row['active'] ) ) : ?><span class="bz-archived-tag"><?php esc_html_e( 'Archived', 'bookzyra' ); ?></span><?php endif; ?></div><p><?php echo esc_html( $row['description'] ? wp_trim_words( wp_strip_all_tags( $row['description'] ), 16 ) : __( 'No description yet.', 'bookzyra' ) ); ?></p><div class="bz-service-meta"><span><b>◷</b> <?php echo esc_html( absint( $row['duration'] ) ); ?> <?php esc_html_e( 'min', 'bookzyra' ); ?></span><span><b><?php echo esc_html( self::currency_symbol( $currency ) ); ?></b> <?php echo esc_html( number_format_i18n( (float) $row['price'], 2 ) ); ?></span></div></div>
-								<div class="bz-service-admin-actions"><a class="bz-icon-button" href="<?php echo esc_url( admin_url( 'admin.php?page=bookzyra-services&edit=' . absint( $row['id'] ) ) ); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'Edit %s', 'bookzyra' ), $row['name'] ) ); ?>">✎</a><?php if ( ! empty( $row['active'] ) ) : ?><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return confirm('<?php echo esc_js( __( 'Archive this service? Existing appointments will be kept.', 'bookzyra' ) ); ?>');"><input type="hidden" name="action" value="bookzyra_archive_service"><input type="hidden" name="service_id" value="<?php echo esc_attr( absint( $row['id'] ) ); ?>"><?php wp_nonce_field( 'bookzyra_archive_service_' . absint( $row['id'] ) ); ?><button class="bz-icon-button is-muted" type="submit" aria-label="<?php echo esc_attr( sprintf( __( 'Archive %s', 'bookzyra' ), $row['name'] ) ); ?>">⌑</button></form><?php endif; ?></div>
+								<div class="bz-service-admin-actions">
+									<a class="bz-icon-button" href="<?php echo esc_url( admin_url( 'admin.php?page=bookzyra-services&edit=' . absint( $row['id'] ) ) ); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'Edit %s', 'bookzyra' ), $row['name'] ) ); ?>" title="<?php esc_attr_e( 'Edit service', 'bookzyra' ); ?>">✎</a>
+									<?php if ( ! empty( $row['active'] ) ) : ?>
+										<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return confirm('<?php echo esc_js( __( 'Archive this service? It will stop appearing in the booking form. Existing appointments will be kept.', 'bookzyra' ) ); ?>');">
+											<input type="hidden" name="action" value="bookzyra_archive_service">
+											<input type="hidden" name="service_id" value="<?php echo esc_attr( absint( $row['id'] ) ); ?>">
+											<?php wp_nonce_field( 'bookzyra_archive_service_' . absint( $row['id'] ) ); ?>
+											<button class="bz-service-action bz-service-action-archive" type="submit"><?php esc_html_e( 'Archive', 'bookzyra' ); ?></button>
+										</form>
+									<?php else : ?>
+										<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+											<input type="hidden" name="action" value="bookzyra_restore_service">
+											<input type="hidden" name="service_id" value="<?php echo esc_attr( absint( $row['id'] ) ); ?>">
+											<?php wp_nonce_field( 'bookzyra_restore_service_' . absint( $row['id'] ) ); ?>
+											<button class="bz-service-action bz-service-action-restore" type="submit"><?php esc_html_e( 'Restore', 'bookzyra' ); ?></button>
+										</form>
+									<?php endif; ?>
+									<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return confirm('<?php echo esc_js( __( 'Permanently delete this service? Existing appointment records will be kept. This action cannot be undone.', 'bookzyra' ) ); ?>');">
+										<input type="hidden" name="action" value="bookzyra_delete_service">
+										<input type="hidden" name="service_id" value="<?php echo esc_attr( absint( $row['id'] ) ); ?>">
+										<?php wp_nonce_field( 'bookzyra_delete_service_' . absint( $row['id'] ) ); ?>
+										<button class="bz-service-action bz-service-action-delete" type="submit"><?php esc_html_e( 'Delete', 'bookzyra' ); ?></button>
+									</form>
+								</div>
 							</div>
 						<?php endforeach; ?>
 					</div>
@@ -220,10 +245,16 @@ final class Bookzyra_Admin {
 		$this->require_capability();
 		global $wpdb;
 
-		$table   = Bookzyra_Booking::bookings_table();
-		$status  = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$search  = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$paged   = isset( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$table  = Bookzyra_Booking::bookings_table();
+		$status = isset( $_GET['status'] ) && is_scalar( $_GET['status'] )
+			? sanitize_key( wp_unslash( $_GET['status'] ) )
+			: ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$search = isset( $_GET['s'] ) && is_scalar( $_GET['s'] )
+			? sanitize_text_field( wp_unslash( $_GET['s'] ) )
+			: ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$paged = isset( $_GET['paged'] ) && is_scalar( $_GET['paged'] )
+			? max( 1, absint( wp_unslash( $_GET['paged'] ) ) )
+			: 1; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$per_page = 20;
 		$offset   = ( $paged - 1 ) * $per_page;
 		$valid_statuses = array( 'pending', 'confirmed', 'cancelled' );
@@ -353,7 +384,13 @@ final class Bookzyra_Admin {
 	 * @return void
 	 */
 	private function render_custom_method_row( $index, $method ) {
-		$method = array_merge( array( 'id' => '', 'label' => '', 'description' => '', 'instructions' => '', 'active' => 1 ), $method );
+		$defaults = array( 'id' => '', 'label' => '', 'description' => '', 'instructions' => '', 'active' => 1 );
+		$method   = array_merge( $defaults, is_array( $method ) ? $method : array() );
+		foreach ( $defaults as $key => $default ) {
+			if ( ! isset( $method[ $key ] ) || ! is_scalar( $method[ $key ] ) ) {
+				$method[ $key ] = $default;
+			}
+		}
 		?>
 		<div class="bz-custom-method-row" data-custom-method-row>
 			<input type="hidden" name="settings[custom_methods][<?php echo esc_attr( $index ); ?>][id]" value="<?php echo esc_attr( $method['id'] ); ?>">
@@ -369,38 +406,43 @@ final class Bookzyra_Admin {
 	 * @return void
 	 */
 	public function save_service() {
+		$this->require_post_request();
 		$this->require_capability();
 		check_admin_referer( 'bookzyra_save_service' );
 		$input = isset( $_POST['service'] ) && is_array( $_POST['service'] ) ? wp_unslash( $_POST['service'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-		$name  = isset( $input['name'] ) ? sanitize_text_field( $input['name'] ) : '';
+		$name  = isset( $input['name'] ) ? self::safe_text( $input['name'] ) : '';
 		if ( '' === $name ) {
 			$this->redirect( 'bookzyra-services', 'service-error' );
 		}
 
-		$duration = isset( $input['duration'] ) ? min( 720, max( 5, absint( $input['duration'] ) ) ) : 30;
-		$price    = isset( $input['price'] ) && is_numeric( $input['price'] ) ? max( 0, min( 99999999.99, (float) $input['price'] ) ) : 0;
-		$color    = isset( $input['color'] ) && preg_match( '/^#[0-9a-fA-F]{6}$/', $input['color'] ) ? $input['color'] : '#6257e8';
+		$duration = isset( $input['duration'] ) ? min( 720, max( 5, self::safe_absint( $input['duration'], 30 ) ) ) : 30;
+		$price    = isset( $input['price'] ) && is_scalar( $input['price'] ) && is_numeric( $input['price'] ) ? max( 0, min( 99999999.99, (float) $input['price'] ) ) : 0;
+		$color    = isset( $input['color'] ) ? self::safe_text( $input['color'] ) : '';
+		$color    = preg_match( '/^#[0-9a-fA-F]{6}$/', $color ) ? $color : '#6257e8';
 		$now      = current_time( 'mysql' );
 		$data     = array(
 			'name'        => $name,
-			'description' => isset( $input['description'] ) ? sanitize_textarea_field( $input['description'] ) : '',
+			'description' => isset( $input['description'] ) ? self::safe_text( $input['description'], true ) : '',
 			'duration'    => $duration,
 			'price'       => number_format( $price, 2, '.', '' ),
 			'color'       => $color,
-			'active'      => isset( $input['active'] ) ? 1 : 0,
+			'active'      => self::is_checked_value( isset( $input['active'] ) ? $input['active'] : null ) ? 1 : 0,
 			'updated_at'  => $now,
 		);
 
 		global $wpdb;
 		$table = Bookzyra_Booking::services_table();
-		$id    = isset( $input['id'] ) ? absint( $input['id'] ) : 0;
+		$id    = isset( $input['id'] ) ? self::safe_absint( $input['id'] ) : 0;
 		if ( $id ) {
-			$wpdb->update( $table, $data, array( 'id' => $id ), array( '%s', '%s', '%d', '%s', '%s', '%d', '%s' ), array( '%d' ) );
-			$notice = 'service-updated';
+			if ( ! Bookzyra_Booking::get_service( $id, false ) ) {
+				$this->redirect( 'bookzyra-services', 'service-not-found' );
+			}
+			$saved  = $wpdb->update( $table, $data, array( 'id' => $id ), array( '%s', '%s', '%d', '%s', '%s', '%d', '%s' ), array( '%d' ) );
+			$notice = false === $saved ? 'service-save-error' : 'service-updated';
 		} else {
 			$data['created_at'] = $now;
-			$wpdb->insert( $table, $data, array( '%s', '%s', '%d', '%s', '%s', '%d', '%s', '%s' ) );
-			$notice = 'service-created';
+			$saved = $wpdb->insert( $table, $data, array( '%s', '%s', '%d', '%s', '%s', '%d', '%s', '%s' ) );
+			$notice = false === $saved ? 'service-save-error' : 'service-created';
 		}
 
 		$this->redirect( 'bookzyra-services', $notice );
@@ -412,12 +454,82 @@ final class Bookzyra_Admin {
 	 * @return void
 	 */
 	public function archive_service() {
+		$this->require_post_request();
 		$this->require_capability();
-		$id = isset( $_POST['service_id'] ) ? absint( $_POST['service_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$id = isset( $_POST['service_id'] ) && is_scalar( $_POST['service_id'] ) ? absint( wp_unslash( $_POST['service_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( ! $id ) {
+			$this->redirect( 'bookzyra-services', 'service-not-found' );
+		}
 		check_admin_referer( 'bookzyra_archive_service_' . $id );
+		if ( ! Bookzyra_Booking::get_service( $id, false ) ) {
+			$this->redirect( 'bookzyra-services', 'service-not-found' );
+		}
+
 		global $wpdb;
-		$wpdb->update( Bookzyra_Booking::services_table(), array( 'active' => 0, 'updated_at' => current_time( 'mysql' ) ), array( 'id' => $id ), array( '%d', '%s' ), array( '%d' ) );
-		$this->redirect( 'bookzyra-services', 'service-archived' );
+		$updated = $wpdb->update(
+			Bookzyra_Booking::services_table(),
+			array( 'active' => 0, 'updated_at' => current_time( 'mysql' ) ),
+			array( 'id' => $id ),
+			array( '%d', '%s' ),
+			array( '%d' )
+		);
+		$this->redirect( 'bookzyra-services', false === $updated ? 'service-operation-error' : 'service-archived' );
+	}
+
+	/**
+	 * Restore an archived service and make it available in the public booking form.
+	 *
+	 * @return void
+	 */
+	public function restore_service() {
+		$this->require_post_request();
+		$this->require_capability();
+		$id = isset( $_POST['service_id'] ) && is_scalar( $_POST['service_id'] ) ? absint( wp_unslash( $_POST['service_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( ! $id ) {
+			$this->redirect( 'bookzyra-services', 'service-not-found' );
+		}
+		check_admin_referer( 'bookzyra_restore_service_' . $id );
+		if ( ! Bookzyra_Booking::get_service( $id, false ) ) {
+			$this->redirect( 'bookzyra-services', 'service-not-found' );
+		}
+
+		global $wpdb;
+		$updated = $wpdb->update(
+			Bookzyra_Booking::services_table(),
+			array( 'active' => 1, 'updated_at' => current_time( 'mysql' ) ),
+			array( 'id' => $id ),
+			array( '%d', '%s' ),
+			array( '%d' )
+		);
+		$this->redirect( 'bookzyra-services', false === $updated ? 'service-operation-error' : 'service-restored' );
+	}
+
+	/**
+	 * Permanently delete a service while keeping its appointment history intact.
+	 *
+	 * Appointment rows store a name and price snapshot, so deleting the service
+	 * does not delete or corrupt existing bookings.
+	 *
+	 * @return void
+	 */
+	public function delete_service() {
+		$this->require_post_request();
+		$this->require_capability();
+		$id = isset( $_POST['service_id'] ) && is_scalar( $_POST['service_id'] ) ? absint( wp_unslash( $_POST['service_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( ! $id ) {
+			$this->redirect( 'bookzyra-services', 'service-not-found' );
+		}
+		check_admin_referer( 'bookzyra_delete_service_' . $id );
+		if ( ! Bookzyra_Booking::get_service( $id, false ) ) {
+			$this->redirect( 'bookzyra-services', 'service-not-found' );
+		}
+
+		global $wpdb;
+		$deleted = $wpdb->delete( Bookzyra_Booking::services_table(), array( 'id' => $id ), array( '%d' ) );
+		if ( false === $deleted ) {
+			$this->redirect( 'bookzyra-services', 'service-delete-error' );
+		}
+		$this->redirect( 'bookzyra-services', $deleted ? 'service-deleted' : 'service-not-found' );
 	}
 
 	/**
@@ -426,19 +538,23 @@ final class Bookzyra_Admin {
 	 * @return void
 	 */
 	public function update_booking() {
+		$this->require_post_request();
 		$this->require_capability();
-		$id = isset( $_POST['booking_id'] ) ? absint( $_POST['booking_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$id = isset( $_POST['booking_id'] ) && is_scalar( $_POST['booking_id'] ) ? absint( wp_unslash( $_POST['booking_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( ! $id ) {
+			$this->redirect( 'bookzyra-bookings', 'booking-update-error' );
+		}
 		check_admin_referer( 'bookzyra_update_booking_' . $id );
-		$status = isset( $_POST['status'] ) ? sanitize_key( wp_unslash( $_POST['status'] ) ) : 'pending'; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-		$payment = isset( $_POST['payment_status'] ) ? sanitize_key( wp_unslash( $_POST['payment_status'] ) ) : 'unpaid'; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$status = isset( $_POST['status'] ) ? sanitize_key( self::safe_text( wp_unslash( $_POST['status'] ) ) ) : 'pending'; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$payment = isset( $_POST['payment_status'] ) ? sanitize_key( self::safe_text( wp_unslash( $_POST['payment_status'] ) ) ) : 'unpaid'; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		if ( ! in_array( $status, array( 'pending', 'confirmed', 'cancelled' ), true ) ) {
 			$status = 'pending';
 		}
 		if ( ! in_array( $payment, array( 'not_required', 'unpaid', 'awaiting', 'paid', 'failed' ), true ) ) {
 			$payment = 'unpaid';
 		}
-		Bookzyra_Booking::update_booking_status( $id, $status, $payment );
-		$this->redirect( 'bookzyra-bookings', 'booking-updated' );
+		$updated = Bookzyra_Booking::update_booking_status( $id, $status, $payment );
+		$this->redirect( 'bookzyra-bookings', $updated ? 'booking-updated' : 'booking-update-error' );
 	}
 
 	/**
@@ -447,45 +563,46 @@ final class Bookzyra_Admin {
 	 * @return void
 	 */
 	public function save_settings() {
+		$this->require_post_request();
 		$this->require_capability();
 		check_admin_referer( 'bookzyra_save_settings' );
 		$input = isset( $_POST['settings'] ) && is_array( $_POST['settings'] ) ? wp_unslash( $_POST['settings'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		$settings = bookzyra_get_settings();
 
 		if ( isset( $input['business_name'] ) ) {
-			$settings['business_name'] = sanitize_text_field( $input['business_name'] );
+			$settings['business_name'] = self::safe_text( $input['business_name'] );
 		}
 		$currencies = array_keys( self::CURRENCY_SYMBOLS );
-		if ( isset( $input['currency'] ) && in_array( strtoupper( sanitize_text_field( $input['currency'] ) ), $currencies, true ) ) {
-			$settings['currency'] = strtoupper( sanitize_text_field( $input['currency'] ) );
+		if ( isset( $input['currency'] ) && in_array( strtoupper( self::safe_text( $input['currency'] ) ), $currencies, true ) ) {
+			$settings['currency'] = strtoupper( self::safe_text( $input['currency'] ) );
 		}
 		if ( isset( $input['billing_country'] ) ) {
-			$country = strtoupper( sanitize_text_field( $input['billing_country'] ) );
+			$country = strtoupper( self::safe_text( $input['billing_country'] ) );
 			$settings['billing_country'] = preg_match( '/^[A-Z]{2}$/', $country ) ? $country : 'CY';
 		}
 		if ( isset( $input['slot_interval'] ) ) {
-			$interval = absint( $input['slot_interval'] );
+			$interval = self::safe_absint( $input['slot_interval'], 30 );
 			$settings['slot_interval'] = in_array( $interval, array( 15, 20, 30, 45, 60 ), true ) ? $interval : 30;
 		}
 		if ( isset( $input['min_notice_hours'] ) ) {
-			$settings['min_notice_hours'] = min( 168, absint( $input['min_notice_hours'] ) );
+			$settings['min_notice_hours'] = min( 168, self::safe_absint( $input['min_notice_hours'] ) );
 		}
 		if ( isset( $input['booking_window_days'] ) ) {
-			$settings['booking_window_days'] = min( 365, max( 1, absint( $input['booking_window_days'] ) ) );
+			$settings['booking_window_days'] = min( 365, max( 1, self::safe_absint( $input['booking_window_days'], 60 ) ) );
 		}
 		if ( isset( $input['buffer_minutes'] ) ) {
-			$settings['buffer_minutes'] = min( 180, absint( $input['buffer_minutes'] ) );
+			$settings['buffer_minutes'] = min( 180, self::safe_absint( $input['buffer_minutes'] ) );
 		}
-		$settings['auto_confirm'] = isset( $input['auto_confirm'] ) ? 1 : 0;
+		$settings['auto_confirm'] = self::is_checked_value( isset( $input['auto_confirm'] ) ? $input['auto_confirm'] : null ) ? 1 : 0;
 
 		if ( isset( $input['availability'] ) && is_array( $input['availability'] ) ) {
 			$availability = array();
 			for ( $day = 0; $day <= 6; $day++ ) {
 				$day_input = isset( $input['availability'][ $day ] ) && is_array( $input['availability'][ $day ] ) ? $input['availability'][ $day ] : array();
-				$start = isset( $day_input['start'] ) ? sanitize_text_field( $day_input['start'] ) : '09:00';
-				$end   = isset( $day_input['end'] ) ? sanitize_text_field( $day_input['end'] ) : '17:00';
+				$start = isset( $day_input['start'] ) ? self::safe_text( $day_input['start'] ) : '09:00';
+				$end   = isset( $day_input['end'] ) ? self::safe_text( $day_input['end'] ) : '17:00';
 				$availability[ $day ] = array(
-					'enabled' => isset( $day_input['enabled'] ) ? 1 : 0,
+					'enabled' => self::is_checked_value( isset( $day_input['enabled'] ) ? $day_input['enabled'] : null ) ? 1 : 0,
 					'start'   => self::valid_time( $start ) ? $start : '09:00',
 					'end'     => self::valid_time( $end ) ? $end : '17:00',
 				);
@@ -493,30 +610,30 @@ final class Bookzyra_Admin {
 			$settings['availability'] = $availability;
 		}
 
-		$settings['pay_later_enabled'] = isset( $input['pay_later_enabled'] ) ? 1 : 0;
+		$settings['pay_later_enabled'] = self::is_checked_value( isset( $input['pay_later_enabled'] ) ? $input['pay_later_enabled'] : null ) ? 1 : 0;
 		if ( isset( $input['pay_later_label'] ) ) {
-			$settings['pay_later_label'] = sanitize_text_field( $input['pay_later_label'] );
+			$settings['pay_later_label'] = self::safe_text( $input['pay_later_label'] );
 		}
 		if ( isset( $input['pay_later_instructions'] ) ) {
-			$settings['pay_later_instructions'] = sanitize_text_field( $input['pay_later_instructions'] );
+			$settings['pay_later_instructions'] = self::safe_text( $input['pay_later_instructions'], true );
 		}
-		$settings['vpayments_enabled'] = isset( $input['vpayments_enabled'] ) ? 1 : 0;
+		$settings['vpayments_enabled'] = self::is_checked_value( isset( $input['vpayments_enabled'] ) ? $input['vpayments_enabled'] : null ) ? 1 : 0;
 
 		if ( isset( $input['wallee_space_id'] ) ) {
-			$space_id = trim( sanitize_text_field( $input['wallee_space_id'] ) );
+			$space_id = trim( self::safe_text( $input['wallee_space_id'] ) );
 			$settings['wallee_space_id'] = preg_match( '/^\d{1,18}$/', $space_id ) ? $space_id : '';
 		}
 		if ( isset( $input['wallee_user_id'] ) ) {
-			$user_id = trim( sanitize_text_field( $input['wallee_user_id'] ) );
+			$user_id = trim( self::safe_text( $input['wallee_user_id'] ) );
 			$settings['wallee_user_id'] = preg_match( '/^\d{1,18}$/', $user_id ) ? $user_id : '';
 		}
-		if ( ! empty( $input['clear_wallee_key'] ) ) {
+		if ( self::is_checked_value( isset( $input['clear_wallee_key'] ) ? $input['clear_wallee_key'] : null ) ) {
 			$settings['wallee_auth_key'] = '';
-		} elseif ( isset( $input['wallee_auth_key'] ) && '' !== trim( $input['wallee_auth_key'] ) ) {
-			$settings['wallee_auth_key'] = sanitize_text_field( trim( $input['wallee_auth_key'] ) );
+		} elseif ( isset( $input['wallee_auth_key'] ) && '' !== trim( self::safe_text( $input['wallee_auth_key'] ) ) ) {
+			$settings['wallee_auth_key'] = self::safe_text( trim( self::safe_text( $input['wallee_auth_key'] ) ) );
 		}
 
-		if ( ! empty( $input['custom_methods_present'] ) ) {
+		if ( self::is_checked_value( isset( $input['custom_methods_present'] ) ? $input['custom_methods_present'] : null ) ) {
 			$methods = array();
 			$seen    = array();
 			if ( ! empty( $input['custom_methods'] ) && is_array( $input['custom_methods'] ) ) {
@@ -524,11 +641,11 @@ final class Bookzyra_Admin {
 					if ( ! is_array( $custom ) ) {
 						continue;
 					}
-					$label = isset( $custom['label'] ) ? sanitize_text_field( $custom['label'] ) : '';
+					$label = isset( $custom['label'] ) ? self::safe_text( $custom['label'] ) : '';
 					if ( '' === $label ) {
 						continue;
 					}
-					$id = isset( $custom['id'] ) ? sanitize_key( $custom['id'] ) : '';
+					$id = isset( $custom['id'] ) ? sanitize_key( self::safe_text( $custom['id'] ) ) : '';
 					if ( '' === $id || in_array( $id, array( 'offline', 'vpayments' ), true ) || in_array( $id, $seen, true ) ) {
 						$id = 'custom_' . strtolower( wp_generate_password( 8, false, false ) );
 					}
@@ -536,9 +653,9 @@ final class Bookzyra_Admin {
 					$methods[] = array(
 						'id'           => $id,
 						'label'        => $label,
-						'description'  => isset( $custom['description'] ) ? sanitize_text_field( $custom['description'] ) : '',
-						'instructions' => isset( $custom['instructions'] ) ? sanitize_textarea_field( $custom['instructions'] ) : '',
-						'active'       => isset( $custom['active'] ) ? 1 : 0,
+						'description'  => isset( $custom['description'] ) ? self::safe_text( $custom['description'] ) : '',
+						'instructions' => isset( $custom['instructions'] ) ? self::safe_text( $custom['instructions'], true ) : '',
+						'active'       => self::is_checked_value( isset( $custom['active'] ) ? $custom['active'] : null ) ? 1 : 0,
 					);
 				}
 			}
@@ -546,13 +663,13 @@ final class Bookzyra_Admin {
 		}
 
 		if ( isset( $input['notification_email'] ) ) {
-			$email = sanitize_email( $input['notification_email'] );
+			$email = sanitize_email( self::safe_text( $input['notification_email'] ) );
 			$settings['notification_email'] = is_email( $email ) ? $email : get_option( 'admin_email' );
 		}
 		if ( isset( $input['privacy_url'] ) ) {
-			$settings['privacy_url'] = esc_url_raw( $input['privacy_url'] );
+			$settings['privacy_url'] = esc_url_raw( self::safe_text( $input['privacy_url'] ) );
 		}
-		$settings['delete_data_on_uninstall'] = isset( $input['delete_data_on_uninstall'] ) ? 1 : 0;
+		$settings['delete_data_on_uninstall'] = self::is_checked_value( isset( $input['delete_data_on_uninstall'] ) ? $input['delete_data_on_uninstall'] : null ) ? 1 : 0;
 
 		update_option( 'bookzyra_settings', $settings, false );
 		$this->redirect( 'bookzyra-settings', 'settings-saved' );
@@ -587,20 +704,47 @@ final class Bookzyra_Admin {
 	 * @return void
 	 */
 	private function render_notice() {
-		if ( ! isset( $_GET['notice'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( ! isset( $_GET['notice'] ) || ! is_scalar( $_GET['notice'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			return;
 		}
 		$notice = sanitize_key( wp_unslash( $_GET['notice'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$messages = array(
-			'settings-saved'  => __( 'Settings saved. Your booking flow is up to date.', 'bookzyra' ),
-			'service-created' => __( 'Service created and ready to book.', 'bookzyra' ),
-			'service-updated' => __( 'Service updated.', 'bookzyra' ),
-			'service-archived' => __( 'Service archived. Existing appointments are untouched.', 'bookzyra' ),
-			'service-error'   => __( 'Please add a name for this service before saving.', 'bookzyra' ),
-			'booking-updated' => __( 'Appointment status updated.', 'bookzyra' ),
+			'settings-saved'          => array( 'success', __( 'Settings saved. Your booking flow is up to date.', 'bookzyra' ) ),
+			'service-created'         => array( 'success', __( 'Service created and ready to book.', 'bookzyra' ) ),
+			'service-updated'         => array( 'success', __( 'Service updated.', 'bookzyra' ) ),
+			'service-archived'        => array( 'success', __( 'Service archived. Existing appointments are untouched.', 'bookzyra' ) ),
+			'service-restored'        => array( 'success', __( 'Service restored and available for booking.', 'bookzyra' ) ),
+			'service-deleted'         => array( 'success', __( 'Service permanently deleted. Existing appointment records have been kept.', 'bookzyra' ) ),
+			'service-error'           => array( 'error', __( 'Please add a name for this service before saving.', 'bookzyra' ) ),
+			'service-not-found'       => array( 'warning', __( 'That service no longer exists. Refresh the page and try again.', 'bookzyra' ) ),
+			'service-save-error'      => array( 'error', __( 'The service could not be saved. Please try again.', 'bookzyra' ) ),
+			'service-operation-error' => array( 'error', __( 'The service could not be updated. Please try again.', 'bookzyra' ) ),
+			'service-delete-error'    => array( 'error', __( 'The service could not be deleted. No appointment records were removed.', 'bookzyra' ) ),
+			'booking-updated'         => array( 'success', __( 'Appointment status updated.', 'bookzyra' ) ),
+			'booking-update-error'    => array( 'error', __( 'The appointment could not be updated. Please refresh and try again.', 'bookzyra' ) ),
 		);
 		if ( isset( $messages[ $notice ] ) ) {
-			echo '<div class="notice notice-success is-dismissible bz-wp-notice"><p>' . esc_html( $messages[ $notice ] ) . '</p></div>';
+			$type = $messages[ $notice ][0];
+			$text = $messages[ $notice ][1];
+			echo '<div class="notice notice-' . esc_attr( $type ) . ' is-dismissible bz-wp-notice"><p>' . esc_html( $text ) . '</p></div>';
+		}
+	}
+
+	/**
+	 * Reject state-changing requests that do not use the expected HTTP method.
+	 *
+	 * @return void
+	 */
+	private function require_post_request() {
+		$method = isset( $_SERVER['REQUEST_METHOD'] )
+			? strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) )
+			: '';
+		if ( 'POST' !== $method ) {
+			wp_die(
+				esc_html__( 'This action requires a POST request.', 'bookzyra' ),
+				esc_html__( 'Method not allowed', 'bookzyra' ),
+				array( 'response' => 405 )
+			);
 		}
 	}
 
@@ -625,6 +769,42 @@ final class Bookzyra_Admin {
 	private function redirect( $page, $notice ) {
 		wp_safe_redirect( add_query_arg( array( 'page' => $page, 'notice' => $notice ), admin_url( 'admin.php' ) ) );
 		exit;
+	}
+
+	/**
+	 * Safely sanitize scalar input from admin forms.
+	 *
+	 * @param mixed $value     Input value.
+	 * @param bool  $multiline Preserve line breaks.
+	 * @return string
+	 */
+	private static function safe_text( $value, $multiline = false ) {
+		if ( ! is_scalar( $value ) ) {
+			return '';
+		}
+		$value = (string) $value;
+		return $multiline ? sanitize_textarea_field( $value ) : sanitize_text_field( $value );
+	}
+
+	/**
+	 * Convert a scalar input to an absolute integer without coercing arrays.
+	 *
+	 * @param mixed $value   Input value.
+	 * @param int   $default Value used for non-scalars.
+	 * @return int
+	 */
+	private static function safe_absint( $value, $default = 0 ) {
+		return is_scalar( $value ) ? absint( $value ) : absint( $default );
+	}
+
+	/**
+	 * Check a value from a checkbox with the plugin's standard value of 1.
+	 *
+	 * @param mixed $value Checkbox value.
+	 * @return bool
+	 */
+	private static function is_checked_value( $value ) {
+		return is_scalar( $value ) && '1' === (string) $value;
 	}
 
 	/**

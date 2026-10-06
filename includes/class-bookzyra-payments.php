@@ -23,11 +23,13 @@ final class Bookzyra_Payments {
 	 */
 	public static function is_configured() {
 		$settings = bookzyra_get_settings();
-		return ! empty( $settings['wallee_space_id'] )
-			&& ctype_digit( (string) $settings['wallee_space_id'] )
-			&& ! empty( $settings['wallee_user_id'] )
-			&& ctype_digit( (string) $settings['wallee_user_id'] )
-			&& ! empty( $settings['wallee_auth_key'] );
+		$space_id = isset( $settings['wallee_space_id'] ) && is_scalar( $settings['wallee_space_id'] ) ? (string) $settings['wallee_space_id'] : '';
+		$user_id  = isset( $settings['wallee_user_id'] ) && is_scalar( $settings['wallee_user_id'] ) ? (string) $settings['wallee_user_id'] : '';
+		$auth_key = isset( $settings['wallee_auth_key'] ) && is_scalar( $settings['wallee_auth_key'] ) ? (string) $settings['wallee_auth_key'] : '';
+
+		return '' !== $space_id && ctype_digit( $space_id )
+			&& '' !== $user_id && ctype_digit( $user_id )
+			&& '' !== $auth_key;
 	}
 
 	/**
@@ -69,15 +71,15 @@ final class Bookzyra_Payments {
 
 		if ( ! empty( $settings['custom_methods'] ) && is_array( $settings['custom_methods'] ) ) {
 			foreach ( $settings['custom_methods'] as $custom ) {
-				if ( empty( $custom['active'] ) || empty( $custom['id'] ) || empty( $custom['label'] ) ) {
+				if ( ! is_array( $custom ) || ! isset( $custom['active'] ) || ! is_scalar( $custom['active'] ) || empty( $custom['active'] ) || empty( $custom['id'] ) || empty( $custom['label'] ) || ! is_scalar( $custom['id'] ) || ! is_scalar( $custom['label'] ) ) {
 					continue;
 				}
 				$methods[] = array(
-					'id'           => sanitize_key( $custom['id'] ),
+					'id'           => sanitize_key( (string) $custom['id'] ),
 					'type'         => 'manual',
-					'label'        => sanitize_text_field( $custom['label'] ),
-					'description'  => ! empty( $custom['description'] ) ? sanitize_text_field( $custom['description'] ) : '',
-					'instructions' => ! empty( $custom['instructions'] ) ? sanitize_textarea_field( $custom['instructions'] ) : '',
+					'label'        => sanitize_text_field( (string) $custom['label'] ),
+					'description'  => isset( $custom['description'] ) && is_scalar( $custom['description'] ) ? sanitize_text_field( (string) $custom['description'] ) : '',
+					'instructions' => isset( $custom['instructions'] ) && is_scalar( $custom['instructions'] ) ? sanitize_textarea_field( (string) $custom['instructions'] ) : '',
 				);
 			}
 		}
@@ -92,7 +94,10 @@ final class Bookzyra_Payments {
 	 * @return array<string, string>|null
 	 */
 	public static function get_method( $method_id ) {
-		$method_id = sanitize_key( $method_id );
+		if ( ! is_scalar( $method_id ) ) {
+			return null;
+		}
+		$method_id = sanitize_key( (string) $method_id );
 		foreach ( self::get_available_methods() as $method ) {
 			if ( $method['id'] === $method_id ) {
 				return $method;

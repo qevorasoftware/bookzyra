@@ -753,3 +753,42 @@
   .bz-bookings-table { min-width: 1050px; }
   .bz-filter-tabs a { font-size: 12px; }
 }
+
+/* Clear service lifecycle controls: archive, restore and permanent delete. */
+.bz-service-admin-card.is-archived { opacity: 1; background: #fbfcfe; }
+.bz-service-admin-actions { flex-wrap: wrap; }
+.bz-service-admin-actions form { display: inline-flex; }
+.bz-service-action {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 11px;
+  border: 1px solid #e1def6;
+  border-radius: 9px;
+  color: #554cc8;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.bz-service-action-archive:hover,
+.bz-service-action-restore:hover { border-color: #bcb6ef; color: #453bb8; background: #f4f2ff; }
+.bz-service-action-restore { border-color: #ccece4; color: #137763; background: #f1fbf8; }
+.bz-service-action-restore:hover { border-color: #95dacb; color: #0e6857; background: #e7f8f3; }
+.bz-service-action-delete { border-color: #f0d9dc; color: #a34450; background: #fff8f8; }
+.bz-service-action-delete:hover { border-color: #e6b8be; color: #8e2f3b; background: #fff0f2; }
+.bz-service-action:focus-visible { outline: 3px solid rgba(98, 87, 232, .22); outline-offset: 2px; }
+@media (max-width: 782px) {
+  .bz-service-admin-actions { gap: 7px; }
+  .bz-service-action { min-height: 40px; padding: 0 12px; }
+}
+@media (max-width: 560px) {
+  .bz-service-admin-card { flex-wrap: wrap; }
+  .bz-service-admin-main { flex-basis: calc(100% - 30px); }
+  .bz-service-admin-actions { flex: 1 0 calc(100% - 25px); justify-content: flex-end; margin-left: 25px; }
+}

@@ -44,6 +44,9 @@ final class Bookzyra_Booking {
 	 * @return array<string, mixed>|null
 	 */
 	public static function get_service( $service_id, $active_only = true ) {
+		if ( ! is_scalar( $service_id ) || ! absint( $service_id ) ) {
+			return null;
+		}
 		global $wpdb;
 		$table = self::services_table();
 		$sql   = "SELECT * FROM {$table} WHERE id = %d"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -65,6 +68,9 @@ final class Bookzyra_Booking {
 	public static function get_available_slots( $service_id, $date ) {
 		global $wpdb;
 
+		if ( ! is_scalar( $service_id ) || ! is_scalar( $date ) ) {
+			return new WP_Error( 'bookzyra_invalid_request', __( 'Please choose a valid service and date.', 'bookzyra' ), array( 'status' => 400 ) );
+		}
 		$service = self::get_service( $service_id );
 		if ( ! $service ) {
 			return new WP_Error( 'bookzyra_service_not_found', __( 'That service is no longer available. Please choose another service.', 'bookzyra' ), array( 'status' => 404 ) );
@@ -167,15 +173,16 @@ final class Bookzyra_Booking {
 	 */
 	public static function create_booking( $data ) {
 		global $wpdb;
+		$data = is_array( $data ) ? $data : array();
 
-		$service_id = isset( $data['service_id'] ) ? absint( $data['service_id'] ) : 0;
-		$date       = isset( $data['date'] ) ? sanitize_text_field( $data['date'] ) : '';
-		$time       = isset( $data['time'] ) ? sanitize_text_field( $data['time'] ) : '';
-		$name       = isset( $data['name'] ) ? self::truncate_text( sanitize_text_field( $data['name'] ), 190 ) : '';
-		$email      = isset( $data['email'] ) ? self::truncate_text( sanitize_email( $data['email'] ), 190 ) : '';
-		$phone      = isset( $data['phone'] ) ? self::truncate_text( sanitize_text_field( $data['phone'] ), 50 ) : '';
-		$note       = isset( $data['note'] ) ? self::truncate_text( sanitize_textarea_field( $data['note'] ), 1000 ) : '';
-		$method_id  = isset( $data['payment_method'] ) ? sanitize_key( $data['payment_method'] ) : '';
+		$service_id = isset( $data['service_id'] ) && is_scalar( $data['service_id'] ) ? absint( $data['service_id'] ) : 0;
+		$date       = isset( $data['date'] ) && is_scalar( $data['date'] ) ? sanitize_text_field( (string) $data['date'] ) : '';
+		$time       = isset( $data['time'] ) && is_scalar( $data['time'] ) ? sanitize_text_field( (string) $data['time'] ) : '';
+		$name       = isset( $data['name'] ) && is_scalar( $data['name'] ) ? self::truncate_text( sanitize_text_field( (string) $data['name'] ), 190 ) : '';
+		$email      = isset( $data['email'] ) && is_scalar( $data['email'] ) ? self::truncate_text( sanitize_email( (string) $data['email'] ), 190 ) : '';
+		$phone      = isset( $data['phone'] ) && is_scalar( $data['phone'] ) ? self::truncate_text( sanitize_text_field( (string) $data['phone'] ), 50 ) : '';
+		$note       = isset( $data['note'] ) && is_scalar( $data['note'] ) ? self::truncate_text( sanitize_textarea_field( (string) $data['note'] ), 1000 ) : '';
+		$method_id  = isset( $data['payment_method'] ) && is_scalar( $data['payment_method'] ) ? sanitize_key( (string) $data['payment_method'] ) : '';
 
 		if ( ! $service_id || '' === $name || ! is_email( $email ) || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) || ! preg_match( '/^\d{2}:\d{2}$/', $time ) ) {
 			return new WP_Error( 'bookzyra_invalid_booking', __( 'Please check the details in the form and try again.', 'bookzyra' ), array( 'status' => 400 ) );
@@ -361,6 +368,9 @@ final class Bookzyra_Booking {
 	 * @return void
 	 */
 	public static function apply_gateway_state( $booking_id, $state ) {
+		if ( ! is_scalar( $state ) ) {
+			return;
+		}
 		global $wpdb;
 		$booking = self::get_booking( $booking_id );
 		if ( ! $booking ) {

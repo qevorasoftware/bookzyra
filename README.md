@@ -4,7 +4,7 @@ Bookzyra is a lightweight WordPress plugin for service businesses that want a cl
 
 ## Highlights
 
-- Create and archive bookable services with descriptions, durations, prices and accent colours.
+- Create, archive, restore and permanently delete bookable services; deleting a service preserves existing appointment history.
 - Set opening hours for each day, appointment intervals, minimum notice, booking window and a buffer between appointments.
 - Show available appointment times in the WordPress site's timezone and block overlapping reservations.
 - Manage pending, confirmed and cancelled appointments, plus unpaid, awaiting, paid and failed payment states.

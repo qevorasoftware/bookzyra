@@ -282,14 +282,49 @@
     function renderSuccess(result, paymentMethod) {
       const success = root.querySelector('[data-step="success"]');
       success.replaceChildren();
+      const confirmed = result.booking_status === 'confirmed';
+      const emailAccepted = Boolean(result.email_accepted);
       const icon = element('div', 'bz-success-icon', '✓');
-      const eyebrow = element('p', 'bz-overline', 'BOOKZYRA · ' + (strings.bookingReceived || 'BOOKING RECEIVED'));
-      const title = element('h3', '', strings.bookingReceived || 'Appointment request received');
+      const eyebrow = element('p', 'bz-overline', 'BOOKZYRA · ' + (confirmed ? (strings.bookingConfirmed || 'APPOINTMENT CONFIRMED') : (strings.bookingReceived || 'BOOKING RECEIVED')));
+      const title = element('h3', '', confirmed ? (strings.bookingConfirmed || 'Your appointment is confirmed') : (strings.bookingReceived || 'Appointment request received'));
       const message = element('p', 'bz-success-message', result.message || strings.booked || 'Your appointment request has been received.');
       const reference = element('div', 'bz-success-reference');
       reference.append(element('span', '', strings.bookingReference || 'Booking reference'));
       reference.append(element('strong', '', result.reference || ''));
       success.append(icon, eyebrow, title, message, reference);
+
+      const details = element('dl', 'bz-success-details');
+      function addDetail(label, value) {
+        if (!value) return;
+        const row = element('div', 'bz-success-detail-row');
+        row.append(element('dt', '', label));
+        row.append(element('dd', '', value));
+        details.append(row);
+      }
+      addDetail(strings.serviceLabel || 'Service', result.service_name || (state.service && state.service.name));
+      addDetail(strings.dateLabel || 'Date', result.date || dateLabel(state.date));
+      addDetail(strings.timeLabel || 'Time', result.time || timeLabel(state.time));
+      addDetail(strings.statusLabel || 'Appointment status', result.status_label || '');
+      const paymentDetails = [result.payment_method_label, result.payment_status_label].filter(Boolean).join(' · ');
+      addDetail(strings.paymentLabel || 'Payment', paymentDetails);
+      addDetail(strings.totalLabel || 'Total', typeof result.amount === 'number' ? priceLabel(result.amount) : (state.service ? priceLabel(state.service.price) : ''));
+      success.append(details);
+
+      const emailNotice = element('div', 'bz-success-email ' + (emailAccepted ? 'is-accepted' : 'is-failed'));
+      emailNotice.setAttribute('role', 'status');
+      const emailIcon = element('span', 'bz-success-email-icon', emailAccepted ? '✓' : '!');
+      emailIcon.setAttribute('aria-hidden', 'true');
+      const emailCopy = element('div', 'bz-success-email-copy');
+      emailCopy.append(element('p', '', emailAccepted
+        ? (strings.emailAccepted || 'WordPress accepted the booking email for delivery. Check your inbox and spam folder.')
+        : (strings.emailFailed || 'WordPress could not hand off the booking email. Please contact the business or site owner.')));
+      const emailAddress = form.querySelector('[name="email"]');
+      if (emailAddress && emailAddress.value) {
+        emailCopy.append(element('span', '', (strings.emailAddress || 'Booking email address') + ': ' + emailAddress.value.trim()));
+      }
+      emailNotice.append(emailIcon, emailCopy);
+      success.append(emailNotice);
+
       if (paymentMethod && paymentMethod.instructions) {
         const instructions = element('div', 'bz-success-instructions');
         instructions.append(element('strong', '', paymentMethod.label));

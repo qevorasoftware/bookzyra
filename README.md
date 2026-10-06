@@ -27,7 +27,14 @@ Bookzyra is a lightweight WordPress plugin for service businesses that want a cl
 
    To preselect a service by its ID, use `[bookzyra_booking service="123"]`.
 
-6. Preview the page and make a test appointment. Bookzyra sends email using `wp_mail()`, so configure a transactional mail service if your WordPress host does not reliably deliver email.
+6. Preview the page and make a test appointment. Customers see a thank-you screen with the booking reference and appointment details, plus an honest email hand-off status.
+7. Open **Bookzyra → Settings → Booking emails** and use **Send test email** to check the site's mail setup. The test goes to the saved booking notification address (or the WordPress admin address if none is valid).
+
+## Booking confirmations and email delivery
+
+After a booking is saved, Bookzyra attempts to email the customer and the configured booking notification address with the reference, service, date/time, appointment and payment status, and any relevant payment instructions. The confirmation screen reports whether WordPress accepted the customer email for hand-off. For Vpayments, Bookzyra attempts an initial booking update and a further email after payment status is verified.
+
+Bookzyra uses WordPress `wp_mail()`. A successful result means WordPress accepted the message; it does **not** guarantee arrival in the inbox. Delivery depends on the host and its mail transport, provider policies and spam filtering. If the test email does not arrive—or booking emails frequently fail—configure an SMTP or transactional email provider and check the inbox and spam folder. No email test has been performed against your live hosting environment.
 
 ## Payment methods
 

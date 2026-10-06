@@ -253,6 +253,13 @@
 .bz-booking-table-card > .bz-empty-state { min-height: 290px; }
 
 /* Settings */
+.bz-mail-test-panel { display: flex; align-items: center; justify-content: space-between; gap: 22px; margin: 0 0 16px; padding: 18px 20px; border: 1px solid #dfe8f0; border-radius: 12px; background: linear-gradient(110deg, #f7fbff, #fbfaff); }
+.bz-mail-test-panel > div { min-width: 0; }
+.bz-mail-test-panel > div > strong { display: block; margin-bottom: 4px; color: #34415b; font-size: 14px; font-weight: 720; }
+.bz-mail-test-panel p { max-width: 760px; margin: 0; color: #67748a; font-size: 12px; line-height: 1.55; }
+.bz-mail-test-panel p strong { color: #485772; font-size: inherit; font-weight: 720; }
+.bz-mail-test-panel form { flex: 0 0 auto; margin: 0; }
+.bz-mail-test-panel .bz-admin-button { min-height: 42px; font-size: 12px; }
 .bz-settings-form { display: flex; flex-direction: column; gap: 14px; }
 .bz-settings-intro { display: flex; align-items: flex-start; gap: 12px; padding: 14px 17px; border: 1px solid #e3e1f8; border-radius: 10px; background: #f9f8ff; }
 .bz-settings-intro-icon { display: grid; width: 30px; height: 30px; flex: 0 0 30px; place-items: center; border-radius: 9px; color: #665cdb; background: #eeedff; font-size: 15px; }
@@ -593,6 +600,10 @@
 .bz-settings-intro-icon { width: 39px; height: 39px; flex-basis: 39px; border-radius: 11px; font-size: 18px; }
 .bz-settings-intro strong { margin-bottom: 4px; color: #3d4667; font-size: 14px; }
 .bz-settings-intro p { color: #626f86; font-size: 13px; line-height: 1.55; }
+.bz-mail-test-panel { gap: 28px; margin-bottom: 19px; padding: 22px 24px; border-radius: 14px; }
+.bz-mail-test-panel > div > strong { margin-bottom: 6px; font-size: 17px; }
+.bz-mail-test-panel p { color: #5f6c83; font-size: 14px; line-height: 1.6; }
+.bz-mail-test-panel .bz-admin-button { min-height: 48px; padding: 0 18px; font-size: 13px; }
 .bz-settings-card { padding: 26px 28px; border-radius: 16px; }
 .bz-settings-card .bz-card-heading { margin-bottom: 22px; }
 .bz-settings-card .bz-card-heading h2 { font-size: 22px; }
@@ -786,6 +797,9 @@
 @media (max-width: 782px) {
   .bz-service-admin-actions { gap: 7px; }
   .bz-service-action { min-height: 40px; padding: 0 12px; }
+  .bz-mail-test-panel { align-items: stretch; flex-direction: column; gap: 13px; }
+  .bz-mail-test-panel form { width: 100%; }
+  .bz-mail-test-panel .bz-admin-button { width: 100%; }
 }
 @media (max-width: 560px) {
   .bz-service-admin-card { flex-wrap: wrap; }

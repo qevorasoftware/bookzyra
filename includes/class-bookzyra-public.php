@@ -249,8 +249,18 @@ final class Bookzyra_Public {
 				'notSelected'      => __( 'Not selected', 'bookzyra' ),
 				'free'             => __( 'Free', 'bookzyra' ),
 				'bookingReceived'  => __( 'Appointment request received', 'bookzyra' ),
+				'bookingConfirmed' => __( 'Your appointment is confirmed', 'bookzyra' ),
 				'paymentPending'   => __( 'Your appointment is reserved while your secure payment is being verified. We’ll email you when it is confirmed.', 'bookzyra' ),
 				'bookingReference' => __( 'Booking reference', 'bookzyra' ),
+				'serviceLabel'     => __( 'Service', 'bookzyra' ),
+				'dateLabel'        => __( 'Date', 'bookzyra' ),
+				'timeLabel'        => __( 'Time', 'bookzyra' ),
+				'statusLabel'      => __( 'Appointment status', 'bookzyra' ),
+				'paymentLabel'     => __( 'Payment', 'bookzyra' ),
+				'totalLabel'       => __( 'Total', 'bookzyra' ),
+				'emailAddress'     => __( 'Booking email address', 'bookzyra' ),
+				'emailAccepted'    => __( 'WordPress accepted the booking email for delivery. Actual inbox delivery depends on this site’s mail provider; check your inbox and spam folder.', 'bookzyra' ),
+				'emailFailed'      => __( 'WordPress could not hand off the booking email. Please contact the business or site owner if you need an update.', 'bookzyra' ),
 				'chooseAnother'    => __( 'Make another booking', 'bookzyra' ),
 				'booked'           => __( 'Your appointment request has been received. We’ll email you with the next steps.', 'bookzyra' ),
 				'processing'       => __( 'Processing…', 'bookzyra' ),
@@ -360,31 +370,59 @@ final class Bookzyra_Public {
 			if ( is_wp_error( $checkout ) ) {
 				return $checkout;
 			}
-			Bookzyra_Booking::send_notification( absint( $booking['id'] ), 'created' );
+			$delivery = Bookzyra_Booking::send_notification( absint( $booking['id'] ), 'created' );
+			$saved    = Bookzyra_Booking::get_booking( absint( $booking['id'] ) );
+			$payload  = $this->booking_confirmation_data( $saved ? $saved : $booking, $delivery );
+			$payload['reference']    = sprintf( 'BZ-%05d', absint( $booking['id'] ) );
+			$payload['message']      = __( 'Your appointment request is reserved. Complete the secure checkout to continue; we’ll email you when the payment status is verified.', 'bookzyra' );
+			$payload['redirect_url'] = esc_url_raw( $checkout['redirect_url'] );
+			$payload['payment']      = true;
 
-			return rest_ensure_response(
-				array(
-					'redirect_url' => esc_url_raw( $checkout['redirect_url'] ),
-					'reference'    => sprintf( 'BZ-%05d', absint( $booking['id'] ) ),
-					'payment'      => true,
-				)
-			);
+			return rest_ensure_response( $payload );
 		}
 
-		Bookzyra_Booking::send_notification( absint( $booking['id'] ), 'created' );
-		$method = $booking['method'];
-		$message = __( 'Your appointment request has been received. We’ll email you with the next steps.', 'bookzyra' );
-		if ( 'confirmed' === $booking['status'] ) {
-			$message = __( 'Your appointment is confirmed. A confirmation email is on its way.', 'bookzyra' );
-		}
+		$delivery = Bookzyra_Booking::send_notification( absint( $booking['id'] ), 'created' );
+		$saved    = Bookzyra_Booking::get_booking( absint( $booking['id'] ) );
+		$saved    = $saved ? $saved : $booking;
+		$settings     = bookzyra_get_settings();
+		$business     = ! empty( $settings['business_name'] ) && is_scalar( $settings['business_name'] ) ? sanitize_text_field( (string) $settings['business_name'] ) : get_bloginfo( 'name' );
+		$customer_name = sanitize_text_field( $saved['customer_name'] );
+		$message      = 'confirmed' === $saved['status']
+			? sprintf( __( 'Thank you, %1$s! Your appointment with %2$s is confirmed.', 'bookzyra' ), $customer_name, $business )
+			: sprintf( __( 'Thank you, %1$s. %2$s has received your appointment request and will contact you after reviewing it.', 'bookzyra' ), $customer_name, $business );
+		$payload = $this->booking_confirmation_data( $saved, $delivery );
+		$payload['reference']    = sprintf( 'BZ-%05d', absint( $booking['id'] ) );
+		$payload['message']      = $message;
+		$payload['instructions'] = isset( $booking['method']['instructions'] ) ? $booking['method']['instructions'] : '';
+		$payload['payment']      = false;
 
-		return rest_ensure_response(
-			array(
-				'reference'    => sprintf( 'BZ-%05d', absint( $booking['id'] ) ),
-				'message'      => $message,
-				'instructions' => isset( $method['instructions'] ) ? $method['instructions'] : '',
-				'payment'      => false,
-			)
+		return rest_ensure_response( $payload );
+	}
+
+	/**
+	 * Build safe appointment details for the customer's confirmation screen.
+	 *
+	 * @param array<string, mixed> $booking  Saved booking row.
+	 * @param array<string, bool>  $delivery Email send results.
+	 * @return array<string, mixed>
+	 */
+	private function booking_confirmation_data( $booking, $delivery ) {
+		$date_format = (string) get_option( 'date_format' );
+		$time_format = (string) get_option( 'time_format' );
+		$date_format = '' !== $date_format ? $date_format : 'F j, Y';
+		$time_format = '' !== $time_format ? $time_format : 'g:i a';
+		$start       = isset( $booking['starts_at'] ) ? (string) $booking['starts_at'] : '';
+
+		return array(
+			'service_name'         => isset( $booking['service_name'] ) ? sanitize_text_field( (string) $booking['service_name'] ) : '',
+			'date'                 => $start ? Bookzyra_Booking::format_datetime( $start, $date_format ) : '',
+			'time'                 => $start ? Bookzyra_Booking::format_datetime( $start, $time_format ) : '',
+			'booking_status'       => isset( $booking['status'] ) ? sanitize_key( (string) $booking['status'] ) : 'pending',
+			'status_label'         => isset( $booking['status'] ) ? Bookzyra_Booking::status_label( $booking['status'] ) : Bookzyra_Booking::status_label( 'pending' ),
+			'payment_method_label' => isset( $booking['payment_label'] ) ? sanitize_text_field( (string) $booking['payment_label'] ) : '',
+			'payment_status_label' => isset( $booking['payment_status'] ) ? Bookzyra_Booking::payment_status_label( $booking['payment_status'] ) : '',
+			'amount'               => isset( $booking['service_price'] ) ? (float) $booking['service_price'] : 0,
+			'email_accepted'       => ! empty( $delivery['customer_accepted'] ),
 		);
 	}
 
@@ -478,27 +516,73 @@ final class Bookzyra_Public {
 			}
 		}
 
-		$reference = sprintf( 'BZ-%05d', absint( $booking['id'] ) );
+		$reference     = sprintf( 'BZ-%05d', absint( $booking['id'] ) );
+		$customer_name = sanitize_text_field( $booking['customer_name'] );
 		if ( 'paid' === $booking['payment_status'] ) {
-			$title   = __( 'Payment confirmed', 'bookzyra' );
-			$message = __( 'Thank you. Your payment has been verified and your appointment status has been updated.', 'bookzyra' );
-			$icon    = '✓';
-			$class   = 'is-success';
+			$title = __( 'Thank you — payment confirmed', 'bookzyra' );
+			if ( 'confirmed' === $booking['status'] ) {
+				$message = sprintf( __( 'Thank you, %s. Your payment has been verified and your appointment is confirmed.', 'bookzyra' ), $customer_name );
+			} else {
+				$message = sprintf( __( 'Thank you, %1$s. Your payment has been verified. Your appointment request is awaiting approval; we’ll email you when it is confirmed.', 'bookzyra' ), $customer_name );
+			}
+			$icon  = '✓';
+			$class = 'is-success';
 		} elseif ( 'failed' === $booking['payment_status'] || 'cancelled' === $booking['status'] ) {
 			$title   = __( 'Payment not completed', 'bookzyra' );
-			$message = __( 'Your payment was not completed. Your appointment time is no longer held. Please contact us if you would like to try again.', 'bookzyra' );
+			$message = sprintf( __( 'Your payment was not completed, %s. Your appointment time is no longer held. Please contact us if you would like to try again.', 'bookzyra' ), $customer_name );
 			$icon    = '!';
 			$class   = 'is-error';
 		} else {
 			$title   = __( 'Payment is being verified', 'bookzyra' );
-			$message = __( 'Your appointment is reserved while we confirm the payment. We’ll send you an email when the status is updated.', 'bookzyra' );
+			$message = sprintf( __( 'Thank you, %s. Your appointment is reserved while we confirm the payment. We’ll email you when the status is updated.', 'bookzyra' ), $customer_name );
 			$icon    = '…';
 			$class   = 'is-pending';
 		}
 
+		$date_format = (string) get_option( 'date_format' );
+		$time_format = (string) get_option( 'time_format' );
+		$date_format = '' !== $date_format ? $date_format : 'F j, Y';
+		$time_format = '' !== $time_format ? $time_format : 'g:i a';
+		$when        = Bookzyra_Booking::format_datetime( $booking['starts_at'], $date_format . ' · ' . $time_format );
+		$settings    = bookzyra_get_settings();
+		$amount      = number_format_i18n( (float) $booking['service_price'], 2 ) . ' ' . sanitize_text_field( $settings['currency'] );
+		$details     = array(
+			__( 'Service', 'bookzyra' )           => $booking['service_name'],
+			__( 'Date & time', 'bookzyra' )      => $when,
+			__( 'Appointment status', 'bookzyra' ) => Bookzyra_Booking::status_label( $booking['status'] ),
+			__( 'Payment', 'bookzyra' )          => sanitize_text_field( $booking['payment_label'] ) . ' · ' . Bookzyra_Booking::payment_status_label( $booking['payment_status'] ),
+			__( 'Total', 'bookzyra' )            => $amount,
+		);
+		$mail_delivery = get_transient( 'bookzyra_mail_delivery_' . absint( $booking['id'] ) );
+		$email_known   = false;
+		$email_accepted = false;
+		if ( is_array( $mail_delivery ) ) {
+			$email_key = array_key_exists( 'customer_accepted', $mail_delivery ) ? 'customer_accepted' : 'customer_sent';
+			if ( array_key_exists( $email_key, $mail_delivery ) ) {
+				$email_known    = true;
+				$email_accepted = ! empty( $mail_delivery[ $email_key ] );
+			}
+		}
+		if ( ! $email_known && in_array( $mail_delivery, array( 'sent', 'failed' ), true ) ) {
+			$email_known    = true;
+			$email_accepted = 'sent' === $mail_delivery;
+		}
+
 		$html  = '<section class="bookzyra-result ' . esc_attr( $class ) . '">';
-		$html .= '<span class="bz-result-icon" aria-hidden="true">' . esc_html( $icon ) . '</span><div><p class="bz-result-eyebrow">' . esc_html__( 'BOOKZYRA PAYMENT UPDATE', 'bookzyra' ) . '</p>';
-		$html .= '<h2>' . esc_html( $title ) . '</h2><p>' . esc_html( $message ) . '</p><span class="bz-result-reference">' . esc_html__( 'Booking reference', 'bookzyra' ) . ': <strong>' . esc_html( $reference ) . '</strong></span></div></section>';
+		$html .= '<span class="bz-result-icon" aria-hidden="true">' . esc_html( $icon ) . '</span><div class="bz-result-copy"><p class="bz-result-eyebrow">' . esc_html__( 'BOOKZYRA PAYMENT UPDATE', 'bookzyra' ) . '</p>';
+		$html .= '<h2>' . esc_html( $title ) . '</h2><p>' . esc_html( $message ) . '</p><span class="bz-result-reference">' . esc_html__( 'Booking reference', 'bookzyra' ) . ': <strong>' . esc_html( $reference ) . '</strong></span>';
+		$html .= '<div class="bz-result-details">';
+		foreach ( $details as $label => $value ) {
+			$html .= '<div><span>' . esc_html( $label ) . '</span><strong>' . esc_html( $value ) . '</strong></div>';
+		}
+		$html .= '</div>';
+		if ( $email_known ) {
+			$email_message = $email_accepted
+				? __( 'WordPress accepted the latest booking email for delivery. Actual inbox delivery depends on this site’s mail provider; check your inbox and spam folder.', 'bookzyra' )
+				: __( 'WordPress could not hand off the latest booking email. Please contact the business if you need help.', 'bookzyra' );
+			$html .= '<p class="bz-result-email ' . ( $email_accepted ? 'is-accepted' : 'is-failed' ) . '">' . esc_html( $email_message ) . '</p>';
+		}
+		$html .= '</div></section>';
 
 		return $html . $content;
 	}

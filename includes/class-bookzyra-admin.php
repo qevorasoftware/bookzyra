@@ -40,6 +40,7 @@ final class Bookzyra_Admin {
 		add_action( 'admin_post_bookzyra_delete_service', array( $this, 'delete_service' ) );
 		add_action( 'admin_post_bookzyra_update_booking', array( $this, 'update_booking' ) );
 		add_action( 'admin_post_bookzyra_save_settings', array( $this, 'save_settings' ) );
+		add_action( 'admin_post_bookzyra_test_email', array( $this, 'send_test_email' ) );
 	}
 
 	/**
@@ -312,6 +313,12 @@ final class Bookzyra_Admin {
 	public function render_settings() {
 		$this->require_capability();
 		$settings = bookzyra_get_settings();
+		$test_recipient = isset( $settings['notification_email'] ) && is_scalar( $settings['notification_email'] )
+			? sanitize_email( (string) $settings['notification_email'] )
+			: '';
+		if ( ! is_email( $test_recipient ) ) {
+			$test_recipient = sanitize_email( (string) get_option( 'admin_email' ) );
+		}
 		$days     = array(
 			0 => __( 'Sunday', 'bookzyra' ),
 			1 => __( 'Monday', 'bookzyra' ),
@@ -325,6 +332,24 @@ final class Bookzyra_Admin {
 		$this->page_header( __( 'Booking settings', 'bookzyra' ), __( 'Set the rhythm of your appointments and how clients can pay.', 'bookzyra' ), 'bookzyra-settings' );
 		$this->render_notice();
 		?>
+		<div class="bz-mail-test-panel">
+			<div>
+				<strong><?php esc_html_e( 'Booking emails', 'bookzyra' ); ?></strong>
+				<p>
+					<?php if ( is_email( $test_recipient ) ) : ?>
+						<?php esc_html_e( 'A test email will be sent to', 'bookzyra' ); ?> <strong><?php echo esc_html( $test_recipient ); ?></strong>.
+					<?php else : ?>
+						<?php esc_html_e( 'Add a valid booking notification address or WordPress admin address to send a test.', 'bookzyra' ); ?>
+					<?php endif; ?>
+					<?php esc_html_e( 'A successful test means WordPress accepted the message; inbox delivery depends on your mail provider. If it does not arrive, configure SMTP and check spam.', 'bookzyra' ); ?>
+				</p>
+			</div>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<input type="hidden" name="action" value="bookzyra_test_email">
+				<?php wp_nonce_field( 'bookzyra_test_email' ); ?>
+				<button class="bz-admin-button bz-admin-button-light" type="submit"><?php esc_html_e( 'Send test email', 'bookzyra' ); ?></button>
+			</form>
+		</div>
 		<form class="bz-settings-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<input type="hidden" name="action" value="bookzyra_save_settings"><input type="hidden" name="settings[custom_methods_present]" value="1">
 			<?php wp_nonce_field( 'bookzyra_save_settings' ); ?>
@@ -676,6 +701,37 @@ final class Bookzyra_Admin {
 	}
 
 	/**
+	 * Send a plain-text email to the saved booking notification address.
+	 *
+	 * @return void
+	 */
+	public function send_test_email() {
+		$this->require_post_request();
+		$this->require_capability();
+		check_admin_referer( 'bookzyra_test_email' );
+
+		$settings  = bookzyra_get_settings();
+		$recipient = isset( $settings['notification_email'] ) && is_scalar( $settings['notification_email'] )
+			? sanitize_email( (string) $settings['notification_email'] )
+			: '';
+		if ( ! is_email( $recipient ) ) {
+			$recipient = sanitize_email( (string) get_option( 'admin_email' ) );
+		}
+		if ( ! is_email( $recipient ) ) {
+			$this->redirect( 'bookzyra-settings', 'email-test-invalid' );
+		}
+
+		$business = isset( $settings['business_name'] ) && is_scalar( $settings['business_name'] )
+			? sanitize_text_field( (string) $settings['business_name'] )
+			: get_bloginfo( 'name' );
+		$subject = sprintf( __( 'Bookzyra email delivery test — %s', 'bookzyra' ), $business );
+		$body    = __( 'This is a test email from Bookzyra. WordPress accepted this message for delivery.', 'bookzyra' ) . "\n\n" . home_url( '/' );
+		$sent    = wp_mail( $recipient, $subject, $body, array( 'Content-Type: text/plain; charset=UTF-8' ) );
+
+		$this->redirect( 'bookzyra-settings', $sent ? 'email-test-sent' : 'email-test-failed' );
+	}
+
+	/**
 	 * Shared page header with local navigation.
 	 *
 	 * @param string $title       Screen title.
@@ -722,6 +778,9 @@ final class Bookzyra_Admin {
 			'service-delete-error'    => array( 'error', __( 'The service could not be deleted. No appointment records were removed.', 'bookzyra' ) ),
 			'booking-updated'         => array( 'success', __( 'Appointment status updated.', 'bookzyra' ) ),
 			'booking-update-error'    => array( 'error', __( 'The appointment could not be updated. Please refresh and try again.', 'bookzyra' ) ),
+			'email-test-sent'         => array( 'success', __( 'WordPress accepted the test email for delivery. Check the inbox and spam folder; actual delivery depends on your mail provider.', 'bookzyra' ) ),
+			'email-test-failed'       => array( 'error', __( 'WordPress could not send the test email. Configure SMTP or a transactional email provider, then try again.', 'bookzyra' ) ),
+			'email-test-invalid'      => array( 'warning', __( 'Add a valid booking notification email address before sending a test.', 'bookzyra' ) ),
 		);
 		if ( isset( $messages[ $notice ] ) ) {
 			$type = $messages[ $notice ][0];

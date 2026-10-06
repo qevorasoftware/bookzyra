@@ -425,21 +425,26 @@ final class Bookzyra_Booking {
 	 *
 	 * @param int    $booking_id Booking ID.
 	 * @param string $event      created|updated|payment_received|payment_failed.
-	 * @return void
+	 * @return array{customer_accepted: bool, admin_accepted: bool}
 	 */
 	public static function send_notification( $booking_id, $event ) {
+		$delivery = array(
+			'customer_accepted' => false,
+			'admin_accepted'    => false,
+		);
 		$booking = self::get_booking( $booking_id );
 		if ( ! $booking ) {
-			return;
+			return $delivery;
 		}
 
-		$settings     = bookzyra_get_settings();
-		$business     = ! empty( $settings['business_name'] ) ? $settings['business_name'] : get_bloginfo( 'name' );
-		$reference    = sprintf( 'BZ-%05d', absint( $booking['id'] ) );
-		$when         = self::format_datetime( $booking['starts_at'] );
-		$status_label = self::status_label( $booking['status'] );
+		$settings      = bookzyra_get_settings();
+		$business      = ! empty( $settings['business_name'] ) && is_scalar( $settings['business_name'] ) ? sanitize_text_field( (string) $settings['business_name'] ) : get_bloginfo( 'name' );
+		$customer_name = sanitize_text_field( $booking['customer_name'] );
+		$reference     = sprintf( 'BZ-%05d', absint( $booking['id'] ) );
+		$when          = self::format_datetime( $booking['starts_at'] );
+		$status_label  = self::status_label( $booking['status'] );
 		$payment_label = self::payment_status_label( $booking['payment_status'] );
-		$lines        = array(
+		$lines         = array(
 			sprintf( __( 'Appointment reference: %s', 'bookzyra' ), $reference ),
 			sprintf( __( 'Service: %s', 'bookzyra' ), $booking['service_name'] ),
 			sprintf( __( 'When: %s', 'bookzyra' ), $when ),
@@ -463,32 +468,53 @@ final class Bookzyra_Booking {
 
 		switch ( $event ) {
 			case 'payment_received':
-				$subject = sprintf( __( 'Payment received for appointment %s', 'bookzyra' ), $reference );
-				$intro   = __( 'Your online payment has been verified.', 'bookzyra' );
+				$subject = sprintf( __( 'Payment confirmed for appointment %s', 'bookzyra' ), $reference );
+				$intro   = sprintf( __( 'Hello %1$s, thank you for booking with %2$s. Your online payment has been verified.', 'bookzyra' ), $customer_name, $business );
 				break;
 			case 'payment_failed':
 				$subject = sprintf( __( 'Payment update for appointment %s', 'bookzyra' ), $reference );
-				$intro   = __( 'The online payment was not completed. Please contact us if you would like to arrange another payment method.', 'bookzyra' );
+				$intro   = sprintf( __( 'Hello %1$s, your online payment for the appointment below was not completed. Please contact %2$s if you would like to arrange another payment method.', 'bookzyra' ), $customer_name, $business );
 				break;
 			case 'updated':
 				$subject = sprintf( __( 'Appointment update: %s', 'bookzyra' ), $reference );
-				$intro   = __( 'There has been an update to your appointment.', 'bookzyra' );
+				$intro   = sprintf( __( 'Hello %1$s, there has been an update to your appointment with %2$s.', 'bookzyra' ), $customer_name, $business );
 				break;
 			default:
-				$subject = sprintf( __( 'Appointment request received: %s', 'bookzyra' ), $reference );
-				$intro   = __( 'Thanks for booking with us. We have received your appointment request and will be in touch.', 'bookzyra' );
+				$subject = sprintf( __( 'Thank you for booking with %1$s — %2$s', 'bookzyra' ), $business, $reference );
+				$intro   = 'confirmed' === $booking['status']
+					? sprintf( __( 'Hello %1$s, thank you for booking with %2$s. Your appointment is confirmed.', 'bookzyra' ), $customer_name, $business )
+					: sprintf( __( 'Hello %1$s, thank you for booking with %2$s. We have received your appointment request and will contact you with an update.', 'bookzyra' ), $customer_name, $business );
 				break;
 		}
 
 		$body = $intro . "\n\n" . implode( "\n", $lines ) . "\n\n" . $business;
-		wp_mail( $booking['customer_email'], $subject, $body );
+		$headers = array( 'Content-Type: text/plain; charset=UTF-8' );
+		if ( is_email( $booking['customer_email'] ) ) {
+			$delivery['customer_accepted'] = (bool) wp_mail( $booking['customer_email'], $subject, $body, $headers );
+		}
 
-		$admin_email = is_email( $settings['notification_email'] ) ? $settings['notification_email'] : get_option( 'admin_email' );
+		$admin_email = isset( $settings['notification_email'] ) && is_scalar( $settings['notification_email'] )
+			? sanitize_email( (string) $settings['notification_email'] )
+			: '';
+		if ( ! is_email( $admin_email ) ) {
+			$admin_email = sanitize_email( (string) get_option( 'admin_email' ) );
+		}
 		if ( is_email( $admin_email ) && $admin_email !== $booking['customer_email'] ) {
 			$admin_subject = sprintf( __( '[%1$s] Appointment %2$s', 'bookzyra' ), $business, $reference );
-			$admin_body    = sprintf( __( 'Customer: %1$s (%2$s)', 'bookzyra' ), $booking['customer_name'], $booking['customer_email'] ) . "\n" . implode( "\n", $lines );
-			wp_mail( $admin_email, $admin_subject, $admin_body );
+			$admin_body    = sprintf( __( 'New appointment notification for %1$s.', 'bookzyra' ), $business ) . "\n\n" . sprintf( __( 'Customer: %1$s (%2$s)', 'bookzyra' ), $customer_name, $booking['customer_email'] ) . "\n" . implode( "\n", $lines );
+			$delivery['admin_accepted'] = (bool) wp_mail( $admin_email, $admin_subject, $admin_body, $headers );
 		}
+
+		set_transient(
+			'bookzyra_mail_delivery_' . absint( $booking['id'] ),
+			array(
+				'event'         => sanitize_key( $event ),
+				'customer_accepted' => $delivery['customer_accepted'],
+			),
+			DAY_IN_SECONDS
+		);
+
+		return $delivery;
 	}
 
 	/**

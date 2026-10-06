@@ -103,7 +103,10 @@ final class Bookzyra_Admin {
 				$tomorrow->format( 'Y-m-d H:i:s' )
 			)
 		);
-		$pending_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$bookings_table} WHERE status = 'pending'" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$pending_count   = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$bookings_table} WHERE status = 'pending'" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$pending_summary = $pending_count > 0
+			? sprintf( _n( '%s request waiting', '%s requests waiting', $pending_count, 'bookzyra' ), number_format_i18n( $pending_count ) )
+			: __( 'No requests waiting', 'bookzyra' );
 		$week_count = (int) $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM {$bookings_table} WHERE starts_at >= %s AND starts_at < %s AND status = 'confirmed'", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -120,7 +123,7 @@ final class Bookzyra_Admin {
 			ARRAY_A
 		);
 
-		$this->page_header( __( 'Good to see you.', 'bookzyra' ), __( 'A clear view of what’s happening with your appointments.', 'bookzyra' ), 'bookzyra' );
+		$this->page_header( __( 'Dashboard', 'bookzyra' ), __( 'A clear view of your schedule, requests and services.', 'bookzyra' ), 'bookzyra' );
 		$this->render_notice();
 		?>
 		<div class="bz-admin-welcome">
@@ -132,7 +135,7 @@ final class Bookzyra_Admin {
 		<div class="bz-stat-grid">
 			<div class="bz-stat-card"><span class="bz-stat-icon is-violet" aria-hidden="true">▦</span><div><span class="bz-stat-label"><?php esc_html_e( 'Appointments today', 'bookzyra' ); ?></span><strong><?php echo esc_html( number_format_i18n( $today_count ) ); ?></strong></div><span class="bz-stat-note"><?php echo esc_html( wp_date( 'D, M j', $today->getTimestamp(), $timezone ) ); ?></span></div>
 			<div class="bz-stat-card"><span class="bz-stat-icon is-amber" aria-hidden="true">◷</span><div><span class="bz-stat-label"><?php esc_html_e( 'Needs your attention', 'bookzyra' ); ?></span><strong><?php echo esc_html( number_format_i18n( $pending_count ) ); ?></strong></div><a class="bz-stat-link" href="<?php echo esc_url( admin_url( 'admin.php?page=bookzyra-bookings&status=pending' ) ); ?>"><?php esc_html_e( 'Review requests', 'bookzyra' ); ?> →</a></div>
-			<div class="bz-stat-card"><span class="bz-stat-icon is-mint" aria-hidden="true">✓</span><div><span class="bz-stat-label"><?php esc_html_e( 'Confirmed this week', 'bookzyra' ); ?></span><strong><?php echo esc_html( number_format_i18n( $week_count ) ); ?></strong></div><span class="bz-stat-note"><?php esc_html_e( 'Next 7 days', 'bookzyra' ); ?></span></div>
+			<div class="bz-stat-card"><span class="bz-stat-icon is-mint" aria-hidden="true">✓</span><div><span class="bz-stat-label"><?php esc_html_e( 'Confirmed bookings', 'bookzyra' ); ?></span><strong><?php echo esc_html( number_format_i18n( $week_count ) ); ?></strong></div><span class="bz-stat-note"><?php esc_html_e( 'Next 7 days', 'bookzyra' ); ?></span></div>
 			<div class="bz-stat-card"><span class="bz-stat-icon is-blue" aria-hidden="true">✦</span><div><span class="bz-stat-label"><?php esc_html_e( 'Active services', 'bookzyra' ); ?></span><strong><?php echo esc_html( number_format_i18n( $service_count ) ); ?></strong></div><a class="bz-stat-link" href="<?php echo esc_url( admin_url( 'admin.php?page=bookzyra-services' ) ); ?>"><?php esc_html_e( 'Manage services', 'bookzyra' ); ?> →</a></div>
 		</div>
 
@@ -150,8 +153,17 @@ final class Bookzyra_Admin {
 				<?php endif; ?>
 			</section>
 			<aside class="bz-admin-card bz-setup-card">
-				<span class="bz-setup-illustration" aria-hidden="true">✳</span><span class="bz-admin-kicker"><?php esc_html_e( 'GET STARTED', 'bookzyra' ); ?></span><h2><?php esc_html_e( 'Ready for your first booking?', 'bookzyra' ); ?></h2><p><?php esc_html_e( 'Add your services, set your weekly hours, then place the booking form on any page.', 'bookzyra' ); ?></p>
-				<ol class="bz-setup-list"><li><span>1</span><a href="<?php echo esc_url( admin_url( 'admin.php?page=bookzyra-services' ) ); ?>"><?php esc_html_e( 'Create a service', 'bookzyra' ); ?></a></li><li><span>2</span><a href="<?php echo esc_url( admin_url( 'admin.php?page=bookzyra-settings' ) ); ?>#schedule"><?php esc_html_e( 'Set your availability', 'bookzyra' ); ?></a></li><li><span>3</span><span><?php esc_html_e( 'Add', 'bookzyra' ); ?> <code>[bookzyra_booking]</code> <?php esc_html_e( 'to a page', 'bookzyra' ); ?></span></li></ol>
+				<?php if ( 0 === $service_count ) : ?>
+					<span class="bz-setup-illustration" aria-hidden="true">✳</span><span class="bz-admin-kicker"><?php esc_html_e( 'GET STARTED', 'bookzyra' ); ?></span><h2><?php esc_html_e( 'Set up your booking desk', 'bookzyra' ); ?></h2><p><?php esc_html_e( 'Create your first service, set weekly hours, then add the booking form to a page.', 'bookzyra' ); ?></p>
+					<ol class="bz-setup-list"><li><span>1</span><a href="<?php echo esc_url( admin_url( 'admin.php?page=bookzyra-services' ) ); ?>"><?php esc_html_e( 'Create a service', 'bookzyra' ); ?></a></li><li><span>2</span><a href="<?php echo esc_url( admin_url( 'admin.php?page=bookzyra-settings' ) ); ?>#schedule"><?php esc_html_e( 'Set your availability', 'bookzyra' ); ?></a></li><li><span>3</span><span><?php esc_html_e( 'Add', 'bookzyra' ); ?> <code>[bookzyra_booking]</code> <?php esc_html_e( 'to a page', 'bookzyra' ); ?></span></li></ol>
+				<?php else : ?>
+					<div class="bz-admin-kicker"><?php esc_html_e( 'QUICK ACTIONS', 'bookzyra' ); ?></div><h2><?php esc_html_e( 'Keep things moving', 'bookzyra' ); ?></h2><p><?php esc_html_e( 'Jump straight to the tasks you use most.', 'bookzyra' ); ?></p>
+					<div class="bz-dashboard-actions">
+						<a href="<?php echo esc_url( admin_url( 'admin.php?page=bookzyra-bookings&status=pending' ) ); ?>"><span class="bz-dashboard-action-icon is-amber" aria-hidden="true">◷</span><span><strong><?php esc_html_e( 'Review requests', 'bookzyra' ); ?></strong><small><?php echo esc_html( $pending_summary ); ?></small></span><span class="bz-dashboard-action-arrow" aria-hidden="true">→</span></a>
+						<a href="<?php echo esc_url( admin_url( 'admin.php?page=bookzyra-services' ) ); ?>"><span class="bz-dashboard-action-icon is-violet" aria-hidden="true">✦</span><span><strong><?php esc_html_e( 'Manage services', 'bookzyra' ); ?></strong><small><?php esc_html_e( 'Edit your bookable menu', 'bookzyra' ); ?></small></span><span class="bz-dashboard-action-arrow" aria-hidden="true">→</span></a>
+						<a href="<?php echo esc_url( admin_url( 'admin.php?page=bookzyra-settings' ) ); ?>"><span class="bz-dashboard-action-icon is-blue" aria-hidden="true">⚙</span><span><strong><?php esc_html_e( 'Booking settings', 'bookzyra' ); ?></strong><small><?php esc_html_e( 'Hours, payments and email', 'bookzyra' ); ?></small></span><span class="bz-dashboard-action-arrow" aria-hidden="true">→</span></a>
+					</div>
+				<?php endif; ?>
 			</aside>
 		</div>
 		</div>
@@ -748,9 +760,9 @@ final class Bookzyra_Admin {
 		);
 		?>
 		<div class="wrap bookzyra-admin-wrap">
-			<div class="bz-admin-brandbar"><div class="bz-admin-logo"><span class="bz-admin-logo-mark"><i></i><i></i><i></i></span><span>bookzyra</span></div><span class="bz-admin-brand-tag"><?php esc_html_e( 'APPOINTMENT STUDIO', 'bookzyra' ); ?></span><a href="<?php echo esc_url( admin_url( 'admin.php?page=bookzyra-settings' ) ); ?>" class="bz-admin-help-link"><?php esc_html_e( 'Booking settings', 'bookzyra' ); ?> <span aria-hidden="true">↗</span></a></div>
+			<div class="bz-admin-brandbar"><div class="bz-admin-logo"><span class="bz-admin-logo-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>Bookzyra</span></div><span class="bz-admin-brand-tag"><?php esc_html_e( 'APPOINTMENT WORKSPACE', 'bookzyra' ); ?></span><span class="bz-admin-today"><span aria-hidden="true"></span><?php echo esc_html( wp_date( 'D, M j, Y' ) ); ?></span></div>
 			<div class="bz-admin-page-heading"><div><h1><?php echo esc_html( $title ); ?></h1><p><?php echo esc_html( $description ); ?></p></div><?php if ( 'bookzyra' !== $current ) : ?><span class="bz-heading-chip"><span></span><?php esc_html_e( 'Your booking desk', 'bookzyra' ); ?></span><?php endif; ?></div>
-			<nav class="bz-admin-tabs" aria-label="<?php esc_attr_e( 'Bookzyra pages', 'bookzyra' ); ?>"><?php foreach ( $tabs as $slug => $tab ) : ?><a class="<?php echo $current === $slug ? 'is-active' : ''; ?>" href="<?php echo esc_url( admin_url( $tab[1] ) ); ?>"><?php echo esc_html( $tab[0] ); ?></a><?php endforeach; ?></nav>
+			<nav class="bz-admin-tabs" aria-label="<?php esc_attr_e( 'Bookzyra pages', 'bookzyra' ); ?>"><?php foreach ( $tabs as $slug => $tab ) : ?><a class="<?php echo $current === $slug ? 'is-active' : ''; ?>" href="<?php echo esc_url( admin_url( $tab[1] ) ); ?>" <?php echo $current === $slug ? 'aria-current="page"' : ''; ?>><?php echo esc_html( $tab[0] ); ?></a><?php endforeach; ?></nav>
 		<?php
 	}
 
